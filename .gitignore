@@ -1,0 +1,16 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+*.Rcheck/
+*.tar.gz
+.stringdb_cache/
+inst/doc
+Meta/
+doc/
+.httr-oauth
+*.html
+.quarto/
+_pkgdown.yml
+docs/

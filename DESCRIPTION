@@ -1,0 +1,38 @@
+Package: biowrenchR
+Title: Data Structure Pipelines for Genomic Analysis
+Version: 0.1.0
+Authors@R: person("Matthew", "Hung", role = c("aut", "cre"),
+                  email = "matthew.hung@crick.ac.uk")
+Description: Helpers for genomic file formatting (GMT, GCT), list/data-frame
+    conversion, human-mouse gene symbol mapping via Ensembl BioMart, gene-set
+    filtering, isoform summarization, annotation joins, and plotting utilities
+    (palettes, PDF export, facet strip colors).
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    biomaRt,
+    data.table,
+    dplyr,
+    grDevices,
+    magrittr,
+    rlang,
+    stringr,
+    tibble,
+    tidyr,
+    utils
+Suggests:
+    Cairo,
+    ggplot2,
+    ggplotify,
+    knitr,
+    RColorBrewer,
+    rmarkdown,
+    STRINGdb,
+    viridis
+URL: https://github.com/
+BugReports: https://github.com/
+Depends:
+    R (>= 4.1.0)

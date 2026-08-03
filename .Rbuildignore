@@ -1,0 +1,10 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.git$
+^\.github$
+^\.cursor$
+^LICENSE\.md$
+^README\.Rmd$
+^\.DS_Store$
+^\.stringdb_cache$
+^biowrenchR\.Rproj$
