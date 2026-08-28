@@ -98,6 +98,66 @@ NULL
   "viridis", "magma", "plasma", "inferno", "cividis", "mako", "rocket", "turbo"
 )
 
+.hex_re <- "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3}|[0-9A-Fa-f]{8})$"
+
+#' Resolve a palette specification to a character vector of hex colors
+#'
+#' @param palette Palette name, hex vector, or function (see [get_palette()]).
+#' @param n Number of colors requested (used for viridis / ColorBrewer / functions).
+#' @return Character vector of hex colors (not yet truncated / expanded to `n`).
+#' @noRd
+.resolve_palette <- function(palette, n) {
+  if (is.function(palette)) {
+    formals_n <- names(formals(palette))
+    cols <- if ("n" %in% formals_n) palette(n = n) else palette()
+    return(cols)
+  }
+
+  if (!is.character(palette) || length(palette) < 1L) {
+    return(NULL)
+  }
+
+  # Already a vector of colors
+  if (length(palette) > 1L) {
+    return(palette)
+  }
+
+  name <- palette[[1L]]
+
+  # Built-in static palettes (incl. legacy "pal_kelly_20" -> "pal_kelly20")
+  if (name %in% names(.palettes)) {
+    return(.palettes[[name]])
+  }
+  if (grepl("^pal_.+_\\d+$", name)) {
+    legacy <- sub("_(\\d+)$", "\\1", name)
+    if (legacy %in% names(.palettes)) {
+      return(.palettes[[legacy]])
+    }
+  }
+
+  # viridis family
+  if (name %in% .viridis_names) {
+    if (!requireNamespace("viridis", quietly = TRUE)) {
+      stop("Package 'viridis' is required for palette '", name, "'", call. = FALSE)
+    }
+    return(get(name, envir = asNamespace("viridis"))(n))
+  }
+
+  # ColorBrewer
+  if (requireNamespace("RColorBrewer", quietly = TRUE) &&
+      name %in% rownames(RColorBrewer::brewer.pal.info)) {
+    max_colors <- RColorBrewer::brewer.pal.info[name, "maxcolors"]
+    cols <- RColorBrewer::brewer.pal(min(n, max_colors), name)
+    if (n > max_colors) {
+      cols <- grDevices::colorRampPalette(cols)(n)
+    }
+    return(cols)
+  }
+
+  # Single hex string, or unknown name (validated later)
+  palette
+}
+
 #' List built-in palettes
 #'
 #' @return Named list of character vectors of hex colors.
@@ -127,64 +187,43 @@ get_palette <- function(palette, n = 9, direction = 1) {
   }
   n <- as.integer(n)
 
-  if (is.function(palette)) {
-    formals_n <- names(formals(palette))
-    palette <- if ("n" %in% formals_n) palette(n = n) else palette()
-  }
-
-  if (is.character(palette) && length(palette) == 1L) {
-    # Accept legacy names with an underscore before the size suffix
-    # (e.g. "pal_kelly_20" -> "pal_kelly20")
-    if (!palette %in% names(.palettes) && grepl("^pal_.+_\\d+$", palette)) {
-      legacy <- sub("_(\\d+)$", "\\1", palette)
-      if (legacy %in% names(.palettes)) {
-        palette <- legacy
-      }
-    }
-    if (palette %in% names(.palettes)) {
-      palette <- .palettes[[palette]]
-    } else if (palette %in% .viridis_names) {
-      if (!requireNamespace("viridis", quietly = TRUE)) {
-        stop("Package 'viridis' is required for palette '", palette, "'", call. = FALSE)
-      }
-      palette <- do.call(get(palette, envir = asNamespace("viridis")), list(n = n))
-    } else if (requireNamespace("RColorBrewer", quietly = TRUE) &&
-               palette %in% rownames(RColorBrewer::brewer.pal.info)) {
-      max_colors <- RColorBrewer::brewer.pal.info[palette, "maxcolors"]
-      palette <- RColorBrewer::brewer.pal(min(n, max_colors), palette)
-      if (n > max_colors) {
-        palette <- grDevices::colorRampPalette(palette)(n)
-      }
-    }
-  }
-
-  if (!is.character(palette) || length(palette) < 1L) {
+  cols <- .resolve_palette(palette, n)
+  if (!is.character(cols) || length(cols) < 1L) {
     stop(
       "`palette` must be a built-in name, hex vector, ColorBrewer/viridis name, or function",
       call. = FALSE
     )
   }
 
-  valid_hex <- grepl("^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3}|[0-9A-Fa-f]{8})$", palette)
+  valid_hex <- grepl(.hex_re, cols)
   if (!all(valid_hex)) {
+    bad <- unique(cols[!valid_hex])
+    # Prefer a clearer message when a single unknown palette name was passed
+    if (is.character(palette) && length(palette) == 1L && identical(cols, palette)) {
+      stop(
+        "Unknown palette '", palette, "'. See names(palette_list()), ",
+        "ColorBrewer, or viridis names.",
+        call. = FALSE
+      )
+    }
     stop(
-      "Invalid hex color code(s): ",
-      paste(unique(palette[!valid_hex]), collapse = ", "),
+      "Invalid hex color code(s): ", paste(bad, collapse = ", "),
       call. = FALSE
     )
   }
 
-  if (n < length(palette)) {
-    palette <- palette[seq_len(n)]
-  } else if (n > length(palette)) {
-    palette <- grDevices::colorRampPalette(palette)(n)
+  n_cols <- length(cols)
+  if (n < n_cols) {
+    cols <- cols[seq_len(n)]
+  } else if (n > n_cols) {
+    cols <- grDevices::colorRampPalette(cols)(n)
   }
 
   if (direction < 0) {
-    palette <- rev(palette)
+    rev(cols)
+  } else {
+    cols
   }
-
-  palette
 }
 
 #' Display built-in palettes
@@ -204,22 +243,28 @@ display_palettes <- function(n = NULL) {
     stop("Package 'ggplot2' is required for display_palettes()", call. = FALSE)
   }
 
-  all_palettes <- palette_list()
-  palette_names <- names(all_palettes)
+  pals <- palette_list()
+  lens <- lengths(pals)
+  if (!is.null(n)) {
+    if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1) {
+      stop("`n` must be a positive number or NULL", call. = FALSE)
+    }
+    n <- as.integer(n)
+    lens <- pmin(lens, n)
+  }
 
   palette_data <- data.frame(
     palette = factor(
-      rep(palette_names, lengths(all_palettes)),
-      levels = palette_names
+      rep(names(pals), lens),
+      levels = names(pals)
     ),
-    color = unlist(all_palettes, use.names = FALSE),
-    position = unlist(lapply(lengths(all_palettes), seq_len), use.names = FALSE),
+    color = unlist(
+      Map(function(cols, len) cols[seq_len(len)], pals, lens),
+      use.names = FALSE
+    ),
+    position = unlist(lapply(lens, seq_len), use.names = FALSE),
     stringsAsFactors = FALSE
   )
-
-  if (!is.null(n)) {
-    palette_data <- palette_data[palette_data$position <= n, , drop = FALSE]
-  }
 
   ggplot2::ggplot(
     palette_data,

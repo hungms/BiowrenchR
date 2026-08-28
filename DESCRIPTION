@@ -5,8 +5,9 @@ Authors@R: person("Matthew", "Hung", role = c("aut", "cre"),
                   email = "matthew.hung@crick.ac.uk")
 Description: Helpers for genomic file formatting (GMT, GCT), list/data-frame
     conversion, human-mouse gene symbol mapping via Ensembl BioMart, gene-set
-    filtering, isoform summarization, annotation joins, and plotting utilities
-    (palettes, PDF export, facet strip colors).
+    filtering, isoform summarization, annotation joins, Crick Institute
+    sample-sheet / FASTQ templates, and plotting utilities (palettes, PDF
+    export, facet strip colors).
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

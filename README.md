@@ -1,14 +1,15 @@
-# biowrenchR
+# biowrenchR <img src="man/figures/logo.png" align="right" height="139" alt="logo" />
 
 R helpers for genomic file formatting, gene-symbol conversion, gene-set
-filtering, isoform summarization, annotation joins, and lightweight plotting
-utilities (palettes, PDF export, facet strip colors).
+filtering, isoform summarization, annotation joins, Crick sample-sheet
+formatting, and lightweight plotting utilities (palettes, PDF export, facet
+strip colors).
 
 ## Install
 
 ```r
 # install.packages("devtools")
-devtools::install_github("OWNER/biowrenchR")
+devtools::install_github("hungms/biowrenchR")
 ```
 
 Or from a local clone:
@@ -30,7 +31,10 @@ Offline BioMart / cell-cycle helpers expect TSV files under `inst/extdata/`
 | Gene sets | `xy_genes`, `mt_genes`, `cell_cycle_genes`, `genes_by_pattern`, `*_pattern` | `R/genesets.R` |
 | Annotation | `annotate_genes` | `R/annotate.R` |
 | Summarize | `summarize_genes` | `R/summarize.R` |
-| Plotting | `get_palette`, `palette_list`, `display_palettes`, `save_plot`, `save_jupyter_plot`, `add_strip_pal` | `R/plot-*.R` |
+| Crick templates | `prepare_crick_rnaseq`, `prepare_crick_atacseq`, `prepare_crick_10x`, `prepare_crick_cellranger`, `extract_fastq`, `cat_content` | `R/crick.R` |
+| Palettes | `get_palette`, `palette_list`, `display_palettes` | `R/plot-palette.R` |
+| Plot export | `save_plot`, `save_jupyter_plot` | `R/plot-export.R` |
+| Facet strips | `add_strip_pal` | `R/plot-strips.R` |
 | Internals | validators, extdata helpers, caches | `R/internal.R` |
 
 ## Quick examples
@@ -74,6 +78,16 @@ genes_by_pattern("human", c("rb", "mt"))
 ```r
 get_palette("pal_kelly20", n = 5)
 save_plot(p, "figures", file = "myplot.pdf")
+```
+
+### Crick sample sheets
+
+```r
+# sheet <- read.csv("crick_sample_sheet.csv")
+# prepare_crick_rnaseq("/path/to/sequencing", sheet)
+# prepare_crick_atacseq("/path/to/sequencing", sheet)
+# lib <- prepare_crick_10x("/path/to/sequencing", sheet, str = "/path/to/sequencing/")
+# prepare_crick_cellranger(lib)
 ```
 
 ### Annotation and isoform summarization
