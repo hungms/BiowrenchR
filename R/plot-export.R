@@ -63,32 +63,45 @@ save_plot <- function(plot,
 
 #' Save a plot from a Jupyter / notebook session
 #'
-#' Convenience wrapper around [save_plot()] that names the PDF after the
-#' unevaluated plot argument.
+#' Convenience wrapper around [save_plot()]. By default names the PDF after the
+#' unevaluated `plot` argument; override with `name` if needed. A `.pdf`
+#' extension is added automatically when missing.
 #'
 #' @inheritParams save_plot
+#' @param name Optional output file name (with or without `.pdf`). Default
+#'   `NULL` uses the unevaluated `plot` variable name.
 #' @return The output file path, invisibly.
 #'
 #' @examples
 #' \dontrun{
 #' save_jupyter_plot(my_plot, "figures")
+#' save_jupyter_plot(my_plot, "figures", name = "fig1_scatter")
 #' }
 #'
 #' @export
 save_jupyter_plot <- function(plot,
                               save_dir,
+                              name = NULL,
                               width = getOption("repr.plot.width", 7),
                               height = getOption("repr.plot.height", 7)) {
-  nm <- substitute(plot)
-  file <- if (is.name(nm)) {
-    paste0(as.character(nm), ".pdf")
-  } else {
-    stop("Pass a plot object by name, or use save_plot(..., file = ...)", call. = FALSE)
+  if (is.null(name)) {
+    nm <- substitute(plot)
+    if (!is.name(nm)) {
+      stop("Pass a plot object by name, or set `name` explicitly", call. = FALSE)
+    }
+    name <- as.character(nm)
   }
+  if (!is.character(name) || length(name) != 1L || !nzchar(name)) {
+    stop("`name` must be a non-empty string", call. = FALSE)
+  }
+  if (!grepl("\\.pdf$", name, ignore.case = TRUE)) {
+    name <- paste0(name, ".pdf")
+  }
+
   save_plot(
     plot = plot,
     save_dir = save_dir,
-    file = file,
+    file = name,
     width = width,
     height = height
   )

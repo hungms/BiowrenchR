@@ -7,6 +7,7 @@
 save_jupyter_plot(
   plot,
   save_dir,
+  name = NULL,
   width = getOption("repr.plot.width", 7),
   height = getOption("repr.plot.height", 7)
 )
@@ -16,6 +17,9 @@ save_jupyter_plot(
 
 \item{save_dir}{Output directory (created if missing).}
 
+\item{name}{Optional output file name (with or without \code{.pdf}). Default
+\code{NULL} uses the unevaluated \code{plot} variable name.}
+
 \item{width}{Plot width in inches. Defaults to \code{getOption("repr.plot.width", 7)}.}
 
 \item{height}{Plot height in inches. Defaults to \code{getOption("repr.plot.height", 7)}.}
@@ -24,12 +28,14 @@ save_jupyter_plot(
 The output file path, invisibly.
 }
 \description{
-Convenience wrapper around \code{\link[=save_plot]{save_plot()}} that names the PDF after the
-unevaluated plot argument.
+Convenience wrapper around \code{\link[=save_plot]{save_plot()}}. By default names the PDF after the
+unevaluated \code{plot} argument; override with \code{name} if needed. A \code{.pdf}
+extension is added automatically when missing.
 }
 \examples{
 \dontrun{
 save_jupyter_plot(my_plot, "figures")
+save_jupyter_plot(my_plot, "figures", name = "fig1_scatter")
 }
 
 }
