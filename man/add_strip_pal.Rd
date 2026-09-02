@@ -24,7 +24,7 @@ library(ggplot2)
 p <- ggplot(mtcars, aes(wt, mpg)) +
   geom_point() +
   facet_wrap(~cyl)
-add_strip_pal(p, get_palette("pal_kelly20", n = 3))
+add_strip_pal(p, get_palette("kelly20", n = 3))
 }
 
 }

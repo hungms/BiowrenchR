@@ -5,6 +5,7 @@
 .DS_Store
 *.Rcheck/
 *.tar.gz
+.Rlib/
 .stringdb_cache/
 inst/doc
 Meta/

@@ -76,7 +76,7 @@ genes_by_pattern("human", c("rb", "mt"))
 ### Palettes and plots
 
 ```r
-get_palette("pal_kelly20", n = 5)
+get_palette("kelly20", n = 5)
 save_plot(p, "figures", file = "myplot.pdf")
 ```
 

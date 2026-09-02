@@ -22,7 +22,7 @@ Character vector of hex colors.
 Get a color palette
 }
 \examples{
-get_palette("pal_kelly20", n = 5)
+get_palette("kelly20", n = 5)
 get_palette("viridis", n = 10)
 get_palette("Blues", n = 7)
 
