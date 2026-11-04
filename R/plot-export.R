@@ -26,9 +26,7 @@ save_plot <- function(plot,
                       file = NULL,
                       width = getOption("repr.plot.width", 7),
                       height = getOption("repr.plot.height", 7)) {
-  if (!dir.exists(save_dir)) {
-    dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
-  }
+  dir.create(save_dir, recursive = TRUE, showWarnings = FALSE)
   if (!dir.exists(save_dir)) {
     stop("Could not create directory: ", save_dir, call. = FALSE)
   }
@@ -91,18 +89,5 @@ save_jupyter_plot <- function(plot,
     }
     name <- as.character(nm)
   }
-  if (!is.character(name) || length(name) != 1L || !nzchar(name)) {
-    stop("`name` must be a non-empty string", call. = FALSE)
-  }
-  if (!grepl("\\.pdf$", name, ignore.case = TRUE)) {
-    name <- paste0(name, ".pdf")
-  }
-
-  save_plot(
-    plot = plot,
-    save_dir = save_dir,
-    file = name,
-    width = width,
-    height = height
-  )
+  save_plot(plot, save_dir, file = name, width = width, height = height)
 }

@@ -6,53 +6,40 @@
 \alias{biowrenchR-package}
 \title{biowrenchR: Data Structure Pipelines for Genomic Analysis}
 \description{
-Helpers for genomic file formatting, human-mouse gene mapping, gene-set
-filtering, isoform summarization, annotation joins, and plotting utilities.
-}
-\section{Source layout}{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-\describe{
-\item{\code{R/formats.R}}{List/data-frame helpers; GMT and GCT I/O}
-\item{\code{R/biomart.R}}{Load human/mouse/joint BioMart dictionaries}
-\item{\code{R/convert.R}}{Ortholog conversion for vectors, data frames, expression}
-\item{\code{R/genesets.R}}{Gene-set helpers and family regex patterns}
-\item{\code{R/annotate.R}}{Annotation joins}
-\item{\code{R/summarize.R}}{Isoform-to-gene expression aggregation}
-\item{\code{R/plot-palette.R}}{Color palettes and \code{get_palette()}}
-\item{\code{R/plot-export.R}}{PDF plot export helpers}
-\item{\code{R/plot-strips.R}}{Facet strip recoloring}
-\item{\code{R/internal.R}}{Cache, extdata readers, validators}
+Helpers for genomic file formatting (GMT, GCT), list/data-frame conversion, human-mouse gene symbol mapping via Ensembl BioMart, gene-set filtering, isoform summarization, annotation joins, sample sex imputation, Crick Institute sample-sheet / FASTQ templates, and plotting utilities (palettes, PDF export, facet strip colors).
 }
-}
-
 \section{Format I/O}{
 
 \code{read_gmt()}, \code{write_gmt()}, \code{read_gct()}, \code{write_gct()},
 \code{list_to_df()}, \code{df_to_list()}
 }
 
-\section{Conversion}{
+\section{BioMart and conversion}{
 
+\code{load_biomart()}, \code{load_biomart_human()}, \code{load_biomart_mouse()},
 \code{get_conversion_dict()}, \code{convert_genes()}, \code{convert_df()}, \code{convert_exprs()}
 }
 
-\section{BioMart loaders}{
-
-\code{load_biomart()}, \code{load_biomart_human()}, \code{load_biomart_mouse()}
-}
-
-\section{Gene-set helpers}{
+\section{Gene sets}{
 
 \code{xy_genes()}, \code{mt_genes()}, \code{cell_cycle_genes()}, \code{genes_by_pattern()},
 and pattern constants (\code{bcr_pattern}, \code{tcr_pattern}, ...)
 }
 
-\section{Annotation and summarization}{
+\section{Expression utilities}{
 
-\code{annotate_genes()}, \code{summarize_genes()}
+\code{annotate_genes()}, \code{summarize_genes()}, \code{impute_sex()}, \code{sex_marker_genes()}
 }
 
-\section{Plotting helpers}{
+\section{Crick templates}{
+
+\code{prepare_crick_rnaseq()}, \code{prepare_crick_atacseq()}, \code{prepare_crick_10x()},
+\code{prepare_crick_cellranger()}, \code{extract_fastq()}, \code{cat_content()}
+}
+
+\section{Plotting}{
 
 \code{get_palette()}, \code{palette_list()}, \code{display_palettes()},
 \code{save_plot()}, \code{save_jupyter_plot()}, \code{add_strip_pal()}
@@ -61,8 +48,8 @@ and pattern constants (\code{bcr_pattern}, \code{tcr_pattern}, ...)
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/}
-  \item Report bugs at \url{https://github.com/}
+  \item \url{https://github.com/hungms/BiowrenchR}
+  \item Report bugs at \url{https://github.com/hungms/BiowrenchR/issues}
 }
 
 }

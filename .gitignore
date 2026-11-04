@@ -6,12 +6,9 @@
 *.Rcheck/
 *.tar.gz
 .Rlib/
-.stringdb_cache/
-inst/doc
-Meta/
-doc/
-.httr-oauth
-*.html
-.quarto/
-_pkgdown.yml
-docs/
+
+# raw GEO downloads for data-raw/impute_sex_validation.R
+data-raw/geo/
+/doc/
+/Meta/
+.ipynb_checkpoints/

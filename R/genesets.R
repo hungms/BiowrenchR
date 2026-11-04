@@ -119,7 +119,6 @@ cell_cycle_genes <- function(org) {
 #'
 #' Filters BioMart gene symbols with regex patterns for BCR, TCR, MHC,
 #' hemoglobin, ribosomal, or mitochondrially encoded (`MT-`) genes.
-#' Pattern constants such as [bcr_pattern] are defined in this file.
 #'
 #' @param org Organism to query (`"human"` or `"mouse"`).
 #' @param patterns Character vector of pattern keys. Valid values:
@@ -137,26 +136,19 @@ cell_cycle_genes <- function(org) {
 #' @export
 genes_by_pattern <- function(org, patterns, ...) {
   validate_org(org)
-
-  valid_patterns <- c("bcr", "tcr", "mhc", "hb", "rb", "mt")
-  if (!all(patterns %in% valid_patterns)) {
-    invalid <- unique(patterns[!patterns %in% valid_patterns])
+  pattern_map <- c(
+    bcr = bcr_pattern, tcr = tcr_pattern, mhc = mhc_pattern,
+    hb = hb_pattern, rb = rb_pattern, mt = mt_pattern
+  )
+  invalid <- setdiff(patterns, names(pattern_map))
+  if (length(invalid) > 0L) {
     stop(
       "Invalid pattern(s): ", paste(invalid, collapse = ", "),
-      ". Valid patterns are: ", paste(valid_patterns, collapse = ", "),
+      ". Valid patterns are: ", paste(names(pattern_map), collapse = ", "),
       call. = FALSE
     )
   }
-
-  pattern_map <- list(
-    bcr = bcr_pattern,
-    tcr = tcr_pattern,
-    mhc = mhc_pattern,
-    hb = hb_pattern,
-    rb = rb_pattern,
-    mt = mt_pattern
-  )
-  pattern_string <- paste(unlist(pattern_map[patterns], use.names = FALSE), collapse = "|")
+  pattern_string <- paste(pattern_map[patterns], collapse = "|")
 
   dict <- .get_org_biomart(org, ...)
   sym <- .symbol_col(org)

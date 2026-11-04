@@ -10,5 +10,6 @@ palette_list()
 Named list of character vectors of hex colors.
 }
 \description{
-List built-in palettes
+Static hex palettes (Scanpy, Wes Anderson–inspired, colorblind-friendly,
+Vega, ColorBrewer-like). Use with \code{\link[=get_palette]{get_palette()}}.
 }

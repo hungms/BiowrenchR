@@ -1,25 +1,28 @@
 Package: biowrenchR
 Title: Data Structure Pipelines for Genomic Analysis
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: person("Matthew", "Hung", role = c("aut", "cre"),
                   email = "matthew.hung@crick.ac.uk")
 Description: Helpers for genomic file formatting (GMT, GCT), list/data-frame
     conversion, human-mouse gene symbol mapping via Ensembl BioMart, gene-set
-    filtering, isoform summarization, annotation joins, Crick Institute
-    sample-sheet / FASTQ templates, and plotting utilities (palettes, PDF
-    export, facet strip colors).
+    filtering, isoform summarization, annotation joins, sample sex imputation,
+    Crick Institute sample-sheet / FASTQ templates, and plotting utilities
+    (palettes, PDF export, facet strip colors).
 License: MIT + file LICENSE
+URL: https://github.com/hungms/BiowrenchR
+BugReports: https://github.com/hungms/BiowrenchR/issues
 Encoding: UTF-8
-LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
 Imports:
     biomaRt,
     data.table,
     dplyr,
     grDevices,
-    magrittr,
     rlang,
+    stats,
     stringr,
     tibble,
     tidyr,
@@ -31,9 +34,5 @@ Suggests:
     knitr,
     RColorBrewer,
     rmarkdown,
-    STRINGdb,
     viridis
-URL: https://github.com/
-BugReports: https://github.com/
-Depends:
-    R (>= 4.1.0)
+VignetteBuilder: knitr

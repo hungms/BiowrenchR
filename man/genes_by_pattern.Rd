@@ -21,7 +21,6 @@ Character vector of matching gene symbols.
 \description{
 Filters BioMart gene symbols with regex patterns for BCR, TCR, MHC,
 hemoglobin, ribosomal, or mitochondrially encoded (\verb{MT-}) genes.
-Pattern constants such as \link{bcr_pattern} are defined in this file.
 }
 \examples{
 \dontrun{

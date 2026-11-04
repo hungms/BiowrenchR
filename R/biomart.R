@@ -19,24 +19,7 @@
 load_biomart_mouse <- function(host = "https://dec2021.archive.ensembl.org",
                                local = TRUE,
                                release = "105") {
-  if (isTRUE(local)) {
-    dict <- .read_extdata_tsv(paste0("biodict_mouse_release-", release, ".tsv"))
-    assign("biodict_mouse", dict, envir = .biowrenchR_env)
-    return(dict)
-  }
-
-  mouse_biomart <- biomaRt::useMart(
-    "ensembl",
-    host = host,
-    dataset = "mmusculus_gene_ensembl"
-  )
-  dict <- biomaRt::getBM(
-    attributes = c("mgi_symbol", "chromosome_name"),
-    mart = mouse_biomart
-  )
-  colnames(dict) <- c("mouse_gene_symbol", "mouse_chromosome")
-  assign("biodict_mouse", dict, envir = .biowrenchR_env)
-  dict
+  .load_org_biomart("mouse", host, local, release)
 }
 
 #' Load human BioMart gene dictionary
@@ -60,24 +43,7 @@ load_biomart_mouse <- function(host = "https://dec2021.archive.ensembl.org",
 load_biomart_human <- function(host = "https://dec2021.archive.ensembl.org",
                                local = TRUE,
                                release = "105") {
-  if (isTRUE(local)) {
-    dict <- .read_extdata_tsv(paste0("biodict_human_release-", release, ".tsv"))
-    assign("biodict_human", dict, envir = .biowrenchR_env)
-    return(dict)
-  }
-
-  human_biomart <- biomaRt::useMart(
-    "ensembl",
-    host = host,
-    dataset = "hsapiens_gene_ensembl"
-  )
-  dict <- biomaRt::getBM(
-    attributes = c("hgnc_symbol", "chromosome_name"),
-    mart = human_biomart
-  )
-  colnames(dict) <- c("human_gene_symbol", "human_chromosome")
-  assign("biodict_human", dict, envir = .biowrenchR_env)
-  dict
+  .load_org_biomart("human", host, local, release)
 }
 
 #' Load human-mouse BioMart ortholog dictionary
@@ -103,86 +69,74 @@ load_biomart <- function(host = "https://dec2021.archive.ensembl.org",
                          local = TRUE,
                          release = "105") {
   if (isTRUE(local)) {
-    dict <- tryCatch(
-      .read_extdata_tsv(paste0("biodict_release-", release, ".tsv")),
-      error = function(e) {
-        stop("Error reading biomart dictionary: ", conditionMessage(e), call. = FALSE)
-      }
-    )
+    dict <- .read_extdata_tsv(paste0("biodict_release-", release, ".tsv"))
     if (nrow(dict) == 0L) {
       stop("Biomart dictionary file is empty", call. = FALSE)
     }
-    assign("biodict", dict, envir = .biowrenchR_env)
-    return(dict)
+  } else {
+    human <- .ensembl_mart("human", host)
+    mouse <- .ensembl_mart("mouse", host)
+    dict <- dplyr::bind_rows(
+      .lds_dict(mouse, human, first = "mouse"),
+      .lds_dict(human, mouse, first = "human")
+    ) |>
+      dplyr::filter(
+        stringr::str_detect(.data$mouse_gene_symbol, "[a-z]") |
+          stringr::str_detect(.data$human_gene_symbol, "[A-Z]")
+      ) |>
+      dplyr::distinct()
   }
-
-  human_biomart <- biomaRt::useMart(
-    "ensembl",
-    host = host,
-    dataset = "hsapiens_gene_ensembl"
-  )
-  mouse_biomart <- biomaRt::useMart(
-    "ensembl",
-    host = host,
-    dataset = "mmusculus_gene_ensembl"
-  )
-
-  biodict_mouse <- biomaRt::getLDS(
-    attributes = c("mgi_symbol", "chromosome_name"),
-    filters = "",
-    values = NULL,
-    mart = mouse_biomart,
-    attributesL = c("hgnc_symbol", "chromosome_name"),
-    martL = human_biomart,
-    uniqueRows = FALSE
-  )
-  biodict_human <- biomaRt::getLDS(
-    attributes = c("hgnc_symbol", "chromosome_name"),
-    filters = "",
-    values = NULL,
-    mart = human_biomart,
-    attributesL = c("mgi_symbol", "chromosome_name"),
-    martL = mouse_biomart,
-    uniqueRows = FALSE
-  )
-
-  biodict_mouse <- biodict_mouse |>
-    dplyr::mutate(
-      mouse_gene_symbol = .data$MGI.symbol,
-      human_gene_symbol = .data$HGNC.symbol,
-      mouse_chromosome = .data$Chromosome.scaffold.name,
-      human_chromosome = .data$Chromosome.scaffold.name.1
-    ) |>
-    dplyr::select(
-      "mouse_gene_symbol", "mouse_chromosome",
-      "human_gene_symbol", "human_chromosome"
-    ) |>
-    dplyr::filter(
-      stringr::str_detect(.data$mouse_gene_symbol, "[a-z]") |
-        stringr::str_detect(.data$human_gene_symbol, "[A-Z]")
-    )
-
-  biodict_human <- biodict_human |>
-    dplyr::mutate(
-      human_gene_symbol = .data$HGNC.symbol,
-      mouse_gene_symbol = .data$MGI.symbol,
-      human_chromosome = .data$Chromosome.scaffold.name,
-      mouse_chromosome = .data$Chromosome.scaffold.name.1
-    ) |>
-    dplyr::select(
-      "mouse_gene_symbol", "mouse_chromosome",
-      "human_gene_symbol", "human_chromosome"
-    ) |>
-    dplyr::filter(
-      stringr::str_detect(.data$mouse_gene_symbol, "[a-z]") |
-        stringr::str_detect(.data$human_gene_symbol, "[A-Z]")
-    )
-
-  dict <- dplyr::bind_rows(biodict_mouse, biodict_human) |>
-    dplyr::distinct(
-      .data$mouse_gene_symbol, .data$mouse_chromosome,
-      .data$human_gene_symbol, .data$human_chromosome
-    )
   assign("biodict", dict, envir = .biowrenchR_env)
   dict
+}
+
+# Internal ----------------------------------------------------------------
+
+.mart_info <- list(
+  human = list(dataset = "hsapiens_gene_ensembl", symbol = "hgnc_symbol"),
+  mouse = list(dataset = "mmusculus_gene_ensembl", symbol = "mgi_symbol")
+)
+
+#' @noRd
+.ensembl_mart <- function(org, host) {
+  biomaRt::useMart("ensembl", host = host, dataset = .mart_info[[org]]$dataset)
+}
+
+#' Load (and cache) a single-organism symbol/chromosome dictionary
+#' @noRd
+.load_org_biomart <- function(org, host, local, release) {
+  dict <- if (isTRUE(local)) {
+    .read_extdata_tsv(paste0("biodict_", org, "_release-", release, ".tsv"))
+  } else {
+    stats::setNames(
+      biomaRt::getBM(
+        attributes = c(.mart_info[[org]]$symbol, "chromosome_name"),
+        mart = .ensembl_mart(org, host)
+      ),
+      c(.symbol_col(org), .chrom_col(org))
+    )
+  }
+  assign(paste0("biodict_", org), dict, envir = .biowrenchR_env)
+  dict
+}
+
+#' Linked-dataset query `mart` -> `martL`, returned with standard column names
+#' @noRd
+.lds_dict <- function(mart, martL, first) {
+  second <- setdiff(c("human", "mouse"), first)
+  res <- biomaRt::getLDS(
+    attributes = c(.mart_info[[first]]$symbol, "chromosome_name"),
+    filters = "",
+    values = NULL,
+    mart = mart,
+    attributesL = c(.mart_info[[second]]$symbol, "chromosome_name"),
+    martL = martL,
+    uniqueRows = FALSE
+  )
+  # getLDS returns columns in order: symbol, chrom, symbolL, chromL
+  res <- stats::setNames(
+    res[, 1:4],
+    c(.symbol_col(first), .chrom_col(first), .symbol_col(second), .chrom_col(second))
+  )
+  res[, c("mouse_gene_symbol", "mouse_chromosome", "human_gene_symbol", "human_chromosome")]
 }

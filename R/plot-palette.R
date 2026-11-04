@@ -1,14 +1,5 @@
 # Plotting: color palettes
 
-#' Built-in color palettes
-#'
-#' Static hex palettes (Scanpy, Wes Anderson–inspired, colorblind-friendly,
-#' Vega, ColorBrewer-like). Retrieve with [get_palette()] or [palette_list()].
-#'
-#' @name color_palettes
-#' @keywords internal
-NULL
-
 .palettes <- list(
   godsnot102 = c(
     "#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6",
@@ -152,6 +143,9 @@ NULL
 }
 
 #' List built-in palettes
+#'
+#' Static hex palettes (Scanpy, Wes Anderson–inspired, colorblind-friendly,
+#' Vega, ColorBrewer-like). Use with [get_palette()].
 #'
 #' @return Named list of character vectors of hex colors.
 #' @export

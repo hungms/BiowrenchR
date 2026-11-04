@@ -32,15 +32,26 @@ cat_content <- function(dir, n = -1L) {
 #' Expects `dir` to contain dated subdirectories, each with a `fastq/` folder.
 #'
 #' @param dir Path to the parent sequencing directory.
-#' @return Character vector of absolute `.../fastq/` paths that exist.
+#' @return Character vector of existing `.../fastq/` paths (errors if none).
 #' @noRd
 .crick_fastq_dirs <- function(dir) {
   if (!dir.exists(dir)) {
     stop("Directory not found: ", dir, call. = FALSE)
   }
-  dates <- list.files(dir, full.names = TRUE)
-  fastq_dirs <- file.path(dates, "fastq")
-  fastq_dirs[dir.exists(fastq_dirs)]
+  fastq_dirs <- file.path(list.files(dir, full.names = TRUE), "fastq")
+  fastq_dirs <- fastq_dirs[dir.exists(fastq_dirs)]
+  if (length(fastq_dirs) == 0L) {
+    stop("No dated */fastq/ directories found under: ", dir, call. = FALSE)
+  }
+  fastq_dirs
+}
+
+#' @noRd
+.check_sheet_cols <- function(sheet, required) {
+  missing <- setdiff(required, colnames(sheet))
+  if (length(missing) > 0L) {
+    stop("Sample sheet missing column(s): ", paste(missing, collapse = ", "), call. = FALSE)
+  }
 }
 
 #' Match sample-sheet rows to paired FASTQ files in Crick drop folders
@@ -54,18 +65,9 @@ cat_content <- function(dir, n = -1L) {
 #' @noRd
 .prepare_crick_paired <- function(dir, sheet, keep_cols) {
   required <- unique(c("Sample Name", "Sample limsid", keep_cols))
-  missing <- setdiff(required, colnames(sheet))
-  if (length(missing) > 0L) {
-    stop(
-      "Sample sheet missing column(s): ", paste(missing, collapse = ", "),
-      call. = FALSE
-    )
-  }
+  .check_sheet_cols(sheet, required)
 
   fastq_dirs <- .crick_fastq_dirs(dir)
-  if (length(fastq_dirs) == 0L) {
-    stop("No dated */fastq/ directories found under: ", dir, call. = FALSE)
-  }
 
   sheet_list <- vector("list", length(fastq_dirs))
   fastq_1 <- vector("list", length(fastq_dirs))
@@ -211,35 +213,26 @@ prepare_crick_atacseq <- function(dir, sheet) {
 #' @export
 prepare_crick_10x <- function(dir, sheet, str) {
   required <- c("Sample Name", "Sample limsid")
-  missing <- setdiff(required, colnames(sheet))
-  if (length(missing) > 0L) {
-    stop(
-      "Sample sheet missing column(s): ", paste(missing, collapse = ", "),
-      call. = FALSE
-    )
-  }
+  .check_sheet_cols(sheet, required)
 
-  sheet <- sheet %>%
-    dplyr::mutate(feature_type = .crick_10x_feature_type(.data[["Sample Name"]])) %>%
+  sheet <- sheet |>
+    dplyr::mutate(feature_type = .crick_10x_feature_type(.data[["Sample Name"]])) |>
     dplyr::select("Sample limsid", "feature_type", "Sample Name")
 
   fastq_dirs <- .crick_fastq_dirs(dir)
-  if (length(fastq_dirs) == 0L) {
-    stop("No dated */fastq/ directories found under: ", dir, call. = FALSE)
-  }
 
   fastqs <- unlist(
     lapply(fastq_dirs, list.files, full.names = TRUE),
     use.names = FALSE
   )
 
-  output <- data.frame(fastqs = fastqs, lanes = "any", stringsAsFactors = FALSE) %>%
+  output <- data.frame(fastqs = fastqs, lanes = "any", stringsAsFactors = FALSE) |>
     dplyr::mutate(
       fastq_id = sub("_S.*", "", .data$fastqs),
       fastq_id = sub(".*/", "", .data$fastq_id),
       fastqs = sub(paste0(str, ".*"), "", .data$fastqs)
-    ) %>%
-    dplyr::distinct(.data$fastqs, .data$fastq_id, .keep_all = TRUE) %>%
+    ) |>
+    dplyr::distinct(.data$fastqs, .data$fastq_id, .keep_all = TRUE) |>
     merge(
       sheet,
       by.x = "fastq_id",
@@ -297,8 +290,8 @@ prepare_crick_cellranger <- function(sheet,
   )
 
   for (sample in samples) {
-    csv <- sheet %>%
-      dplyr::filter(.data$samples == sample) %>%
+    csv <- sheet |>
+      dplyr::filter(.data$samples == sample) |>
       dplyr::select(-"samples")
     utils::write.table(
       csv,

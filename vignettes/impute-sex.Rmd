@@ -1,0 +1,291 @@
+---
+title: "Validating impute_sex() on public human and mouse data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Validating impute_sex() on public human and mouse data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 9, fig.height = 6)
+has_ggplot <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+`impute_sex()` assigns each sample to `"female"` or `"male"` by k-means
+clustering (k = 2) on sex-chromosome marker genes:
+
+* **female markers**: X-inactivation escape genes (`XIST`, `RPS4X`, ... /
+  `Xist`, `Kdm6a`, ...);
+* **male markers**: all Y-chromosome genes in the packaged BioMart dictionary.
+
+The cluster with higher female-marker and lower male-marker expression is
+called female.
+
+This vignette checks the calls against the recorded sex of samples in eight
+public GEO datasets, covering both organisms, microarray and RNA-seq, and
+a range of tissues. GEO sex labels are themselves sometimes wrong, so every
+call is also compared with a simple independent read-out: a score built from
+a handful of strongly expressed Y genes.
+
+```{r load}
+library(biowrenchR)
+set.seed(2026)
+
+datasets <- readRDS(system.file("extdata", "impute_sex_validation.rds",
+                                package = "biowrenchR"))
+```
+
+## Data
+
+The bundled file holds, for each dataset, a log-scale expression matrix
+(log2 intensities for arrays, log2(CPM + 1) for RNA-seq) restricted to
+sex-marker genes, plus the sex recorded in GEO. It is built by
+`data-raw/impute_sex_validation.R` in the package source, which downloads the
+series matrices / count tables from GEO, maps probes to gene symbols and
+normalises.
+
+```{r datasets, echo = FALSE}
+overview <- do.call(rbind, lapply(datasets, function(d) data.frame(
+  Dataset = d$id, Organism = d$org, Platform = d$platform, Tissue = d$tissue,
+  Samples = ncol(d$exprs), Female = sum(d$sex == "female"),
+  Male = sum(d$sex == "male"), `Marker genes` = nrow(d$exprs),
+  check.names = FALSE
+)))
+knitr::kable(overview, row.names = FALSE)
+```
+
+`GSE107011` (Monaco et al.) contains PBMC and
+`r length(unique(datasets$GSE107011$group))` sorted immune cell subsets: a stress
+test, since cell-type differences could dominate the clustering. `GSE4324`
+contains intact and gonadectomised mice, so calls should follow sex
+chromosomes, not hormones. `GSE60424` and `GSE199722` are strongly
+unbalanced.
+
+## Independent check: core Y-gene score
+
+For each dataset, the mean z-score of a few well-expressed Y genes is split
+into two groups by one-dimensional k-means. Where the GEO label and this
+Y-score call disagree, the label is the more likely error.
+
+```{r helpers}
+core_genes <- list(
+  human = list(
+    y = c("RPS4Y1", "DDX3Y", "KDM5D", "UTY", "EIF1AY", "USP9Y", "ZFY", "NLGN4Y"),
+    x = c("XIST", "RPS4X", "KDM5C", "KDM6A", "ZFX", "DDX3X")
+  ),
+  mouse = list(
+    y = c("Ddx3y", "Kdm5d", "Uty", "Eif2s3y"),
+    x = c("Xist", "Kdm6a", "Kdm5c", "Eif2s3x", "Ddx3x")
+  )
+)
+
+gene_score <- function(exprs, genes) {
+  genes <- intersect(genes, rownames(exprs))
+  m <- exprs[genes, , drop = FALSE]
+  m <- m[apply(m, 1, stats::var) > 0, , drop = FALSE]
+  rowMeans(scale(t(m)))
+}
+
+y_score_call <- function(y) {
+  km <- stats::kmeans(y, 2, nstart = 25)
+  ifelse(km$cluster == which.max(km$centers), "male", "female")
+}
+
+run_dataset <- function(d) {
+  cg <- core_genes[[d$org]]
+  y <- gene_score(d$exprs, cg$y)
+  data.frame(
+    dataset = d$id, org = d$org, sample = colnames(d$exprs),
+    label = unname(d$sex),
+    group = if (is.null(d$group)) NA_character_ else unname(d$group),
+    pred = unname(impute_sex(d$exprs, org = d$org)),
+    pred_scaled = unname(impute_sex(d$exprs, org = d$org, scale = TRUE)),
+    y_score = y, x_score = gene_score(d$exprs, cg$x),
+    y_call = y_score_call(y)
+  )
+}
+
+calls <- do.call(rbind, lapply(datasets, run_dataset))
+```
+
+## Accuracy
+
+```{r accuracy}
+acc <- function(a, b) sprintf("%d/%d (%.1f%%)", sum(a == b), length(a), 100 * mean(a == b))
+summary_tab <- do.call(rbind, lapply(split(calls, calls$dataset), function(x) data.frame(
+  Dataset = x$dataset[1], Organism = x$org[1],
+  `vs GEO label` = acc(x$pred, x$label),
+  `vs Y-score call` = acc(x$pred, x$y_call),
+  `GEO label vs Y-score` = acc(x$label, x$y_call),
+  `scale = TRUE vs Y-score` = acc(x$pred_scaled, x$y_call),
+  check.names = FALSE
+)))
+summary_tab <- summary_tab[match(names(datasets), summary_tab$Dataset), ]
+knitr::kable(summary_tab, row.names = FALSE)
+```
+
+Across all `r nrow(calls)` samples, `impute_sex()` agrees with the GEO label
+for `r sum(calls$pred == calls$label)` and with the independent Y-score call
+for `r sum(calls$pred == calls$y_call)`.
+
+```{r plot, eval = has_ggplot, fig.height = 9}
+library(ggplot2)
+calls$agreement <- ifelse(calls$pred == calls$label,
+                          "agrees with label", "disagrees with label")
+ggplot(calls, aes(x_score, y_score, colour = label, shape = agreement)) +
+  geom_point(size = 1.8, alpha = 0.8) +
+  scale_shape_manual(values = c(16, 4)) +
+  scale_colour_manual(values = c(female = "#c2410c", male = "#1d4ed8")) +
+  facet_wrap(~ paste(org, dataset), scales = "free", ncol = 3) +
+  labs(x = "X-escape gene score (mean z)", y = "Core Y gene score (mean z)",
+       colour = "GEO label", shape = "impute_sex()") +
+  theme_bw()
+```
+
+Samples whose label disagrees with the imputed sex (crosses) usually sit
+squarely inside the *other* sex's cluster. That pattern points to a wrong
+label rather than a wrong call.
+
+## Discordant samples
+
+```{r discordant}
+show_genes <- list(human = c("XIST", "RPS4Y1", "DDX3Y", "KDM5D"),
+                   mouse = c("Xist", "Ddx3y", "Kdm5d", "Uty"))
+discordant <- calls[calls$pred != calls$label, ]
+discordant$markers <- vapply(seq_len(nrow(discordant)), function(i) {
+  d <- datasets[[discordant$dataset[i]]]
+  g <- intersect(show_genes[[d$org]], rownames(d$exprs))
+  paste(sprintf("%s=%.1f", g, d$exprs[g, discordant$sample[i]]), collapse = " ")
+}, character(1))
+knitr::kable(
+  discordant[c("dataset", "sample", "label", "pred", "y_call", "y_score", "markers")],
+  row.names = FALSE, digits = 2
+)
+```
+
+For reference, the median marker expression per labelled sex:
+
+```{r medians}
+medians <- do.call(rbind, lapply(datasets, function(d) {
+  g <- intersect(show_genes[[d$org]], rownames(d$exprs))
+  do.call(rbind, lapply(c("female", "male"), function(s) {
+    med <- apply(d$exprs[g, d$sex == s, drop = FALSE], 1, stats::median)
+    data.frame(dataset = d$id, label = s,
+               markers = paste(sprintf("%s=%.1f", g, med), collapse = " "))
+  }))
+}))
+knitr::kable(medians, row.names = FALSE)
+```
+
+Most discordant samples have the marker profile of the opposite sex (for
+example, labelled female with low *XIST* and high *RPS4Y1* / *KDM5D*).
+Such samples are most likely mislabelled in GEO, a known and
+common problem in public data. `GSE15222` (an older Illumina array without
+an *XIST* probe) also has a group of samples with intermediate Y signal
+that fall between the clusters; k-means must assign them to one side, so
+treat calls in such data with care.
+
+One mouse sample, `GSM98652` (`GSE4324`), expresses both *Xist* and Y genes at
+high levels. That profile suggests a mixed or contaminated sample rather than
+a simple label swap, and no two-way call is reliable for it.
+
+## Gonadectomy does not affect calls (mouse, GSE4324)
+
+```{r gdx}
+g <- calls[calls$dataset == "GSE4324", ]
+table(label = g$label, imputed = g$pred, treatment = g$group)
+```
+
+## Cell-type heterogeneity (human, GSE107011)
+
+```{r celltype}
+m <- calls[calls$dataset == "GSE107011", ]
+cat(length(unique(m$group)), "cell types;",
+    sum(m$pred == m$label), "/", nrow(m), "samples correct\n")
+```
+
+## Effect of `scale`
+
+```{r scale}
+diff_scale <- calls[calls$pred != calls$pred_scaled, ]
+knitr::kable(
+  diff_scale[c("dataset", "sample", "label", "pred", "pred_scaled", "y_call", "y_score")],
+  row.names = FALSE, digits = 2
+)
+```
+
+Scaling changes very few calls. Where it does, it tends to move samples with
+an intermediate Y score, and it is not consistently worse than the default.
+
+## Small cohorts
+
+Real experiments are often small. Below, `impute_sex()` is run on random
+cohorts of 8 samples (at least 2 of each sex, by GEO label) drawn from each
+dataset. Accuracy is scored against the Y-score call so that mislabelled
+samples don't count against the method.
+
+```{r subsample}
+subsample_accuracy <- function(d, y_call, n = 8, draws = 100) {
+  ids <- colnames(d$exprs)
+  res <- replicate(draws, {
+    repeat {
+      s <- sample(ids, n)
+      if (min(table(factor(d$sex[s], c("female", "male")))) >= 2) break
+    }
+    p <- suppressWarnings(impute_sex(d$exprs[, s], org = d$org))
+    if (anyNA(p)) NA_real_ else mean(p == y_call[s])
+  })
+  data.frame(Dataset = d$id, `Mean accuracy` = round(mean(res, na.rm = TRUE), 3),
+             `Perfect cohorts` = sum(res == 1, na.rm = TRUE),
+             `Failed (NA)` = sum(is.na(res)), Draws = draws, check.names = FALSE)
+}
+sub_tab <- do.call(rbind, lapply(datasets, function(d) {
+  x <- calls[calls$dataset == d$id, ]
+  subsample_accuracy(d, stats::setNames(x$y_call, x$sample))
+}))
+knitr::kable(sub_tab, row.names = FALSE)
+```
+
+`NA` results are cohorts where female and male markers disagree on cluster
+assignment; `impute_sex()` warns and refuses to call rather than guess. Such
+failures concentrate in `GSE15222`, whose many intermediate samples make small
+cohorts ambiguous.
+
+## Limitation: single-sex cohorts
+
+k-means always returns two clusters, so a cohort containing only one sex is
+split in two regardless:
+
+```{r single-sex}
+single_sex <- do.call(rbind, lapply(datasets[c("GSE19151", "GSE266332")], function(d) {
+  x <- calls[calls$dataset == d$id, ]
+  fem <- x$sample[x$label == "female" & x$y_call == "female"]
+  p <- suppressWarnings(impute_sex(d$exprs[, fem], org = d$org))
+  data.frame(Dataset = d$id, `True females` = length(fem),
+             `Called female` = sum(p == "female", na.rm = TRUE),
+             `Called male` = sum(p == "male", na.rm = TRUE),
+             `NA` = sum(is.na(p)), check.names = FALSE)
+}))
+knitr::kable(single_sex, row.names = FALSE)
+```
+
+If a cohort may be all one sex, inspect a few strong markers directly (for
+example *XIST* and *RPS4Y1* / *Ddx3y*) before trusting the clusters.
+
+## Summary
+
+* On RNA-seq and modern arrays, in both human and mouse, `impute_sex()`
+  agrees with the independent Y-gene read-out for nearly every sample,
+  including datasets dominated by cell-type differences and gonadectomised
+  animals.
+* Most disagreements with GEO labels look like label errors in GEO.
+* Results are less clean on older arrays with weak Y probes and no *XIST*
+  (`GSE15222`), where some samples are intermediate.
+* The method assumes both sexes are present.
+
+## Session info
+
+```{r session}
+sessionInfo()
+```

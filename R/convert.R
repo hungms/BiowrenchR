@@ -21,18 +21,10 @@ get_conversion_dict <- function(org.from, org.to) {
     stop("org.from and org.to must differ", call. = FALSE)
   }
 
-  biodict <- if (exists("biodict", envir = .biowrenchR_env, inherits = FALSE)) {
-    get("biodict", envir = .biowrenchR_env, inherits = FALSE)
-  } else {
-    load_biomart()
-  }
-
-  source_col <- .symbol_col(org.from)
-  target_col <- .symbol_col(org.to)
-  biodict <- biodict[!is.na(biodict[[target_col]]) & grepl("[A-Za-z]", biodict[[target_col]]),
-                     c(source_col, target_col),
-                     drop = FALSE]
-  biodict
+  biodict <- .biowrenchR_env$biodict %||% load_biomart()
+  target <- biodict[[.symbol_col(org.to)]]
+  keep <- !is.na(target) & grepl("[A-Za-z]", target)
+  biodict[keep, c(.symbol_col(org.from), .symbol_col(org.to)), drop = FALSE]
 }
 
 #' Convert gene symbols between human and mouse
@@ -41,7 +33,8 @@ get_conversion_dict <- function(org.from, org.to) {
 #' @param org.from Source organism (`"human"` or `"mouse"`).
 #' @param org.to Target organism (`"human"` or `"mouse"`).
 #' @param one.to.many If `TRUE`, return all unique target symbols. If `FALSE`
-#'   (default), keep the first mapping per source gene.
+#'   (default), keep the first mapping per source gene. Output follows the
+#'   order of `genes`; unmapped genes are dropped.
 #' @return Character vector of converted gene symbols.
 #'
 #' @examples
@@ -55,30 +48,18 @@ convert_genes <- function(genes,
                           org.to = "mouse",
                           one.to.many = FALSE) {
   validate_org(org.from, genes = genes)
-  validate_org(org.to)
-  if (identical(org.from, org.to)) {
-    stop("org.from and org.to must differ", call. = FALSE)
-  }
 
   biodict <- get_conversion_dict(org.from, org.to)
   source_col <- .symbol_col(org.from)
   target_col <- .symbol_col(org.to)
 
-  genes_df <- data.frame(source_gene = genes, stringsAsFactors = FALSE)
-  result <- dplyr::inner_join(
-    genes_df,
-    biodict,
-    by = c("source_gene" = source_col)
-  )
+  result <- biodict[biodict[[source_col]] %in% genes, , drop = FALSE]
+  result <- result[order(match(result[[source_col]], genes)), , drop = FALSE]
 
   if (isTRUE(one.to.many)) {
     return(unique(result[[target_col]]))
   }
-
-  result |>
-    dplyr::group_by(.data$source_gene) |>
-    dplyr::slice(1L) |>
-    dplyr::pull(!!rlang::sym(target_col))
+  result[[target_col]][!duplicated(result[[source_col]])]
 }
 
 #' Convert gene symbols in a data frame between species
@@ -106,10 +87,6 @@ convert_df <- function(df,
                        one.to.many = FALSE) {
   df <- validate_df(df, gene_column)
   validate_org(org.from, genes = df[[gene_column]])
-  validate_org(org.to)
-  if (identical(org.from, org.to)) {
-    stop("org.from and org.to must differ", call. = FALSE)
-  }
 
   biodict <- get_conversion_dict(org.from, org.to)
   source_col <- .symbol_col(org.from)
@@ -162,10 +139,6 @@ convert_exprs <- function(exprs,
                           normalized = FALSE) {
   exprs <- validate_exprs(exprs)
   validate_org(org.from, genes = rownames(exprs))
-  validate_org(org.to)
-  if (identical(org.from, org.to)) {
-    stop("org.from and org.to must differ", call. = FALSE)
-  }
 
   biodict <- get_conversion_dict(org.from, org.to)
   source_col <- .symbol_col(org.from)

@@ -10,5 +10,6 @@ Place these TSVs here before installing for offline BioMart / annotation use
 | `biodict_mouse_release-<release>.tsv` | `load_biomart_mouse()` |
 | `cellcycle_<org>_genes.tsv` | `cell_cycle_genes()` |
 | `omnipathdb_<org>_release-<release>.tsv` | `annotate_genes()` |
+| `impute_sex_validation.rds` | `vignette("impute-sex")`; built by `data-raw/impute_sex_validation.R` |
 
 Or call BioMart loaders with `local = FALSE` to query Ensembl over the network.

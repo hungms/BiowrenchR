@@ -14,7 +14,8 @@ convert_genes(genes, org.from = "human", org.to = "mouse", one.to.many = FALSE)
 \item{org.to}{Target organism (\code{"human"} or \code{"mouse"}).}
 
 \item{one.to.many}{If \code{TRUE}, return all unique target symbols. If \code{FALSE}
-(default), keep the first mapping per source gene.}
+(default), keep the first mapping per source gene. Output follows the
+order of \code{genes}; unmapped genes are dropped.}
 }
 \value{
 Character vector of converted gene symbols.

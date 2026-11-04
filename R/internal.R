@@ -66,13 +66,8 @@
   if (exists(key, envir = .biowrenchR_env, inherits = FALSE)) {
     return(get(key, envir = .biowrenchR_env, inherits = FALSE))
   }
-  dict <- if (identical(org, "human")) {
-    load_biomart_human(...)
-  } else {
-    load_biomart_mouse(...)
-  }
-  assign(key, dict, envir = .biowrenchR_env)
-  dict
+  # loaders cache their result in .biowrenchR_env
+  if (identical(org, "human")) load_biomart_human(...) else load_biomart_mouse(...)
 }
 
 #' Validate organism parameter
@@ -102,6 +97,15 @@ validate_org <- function(org, genes = NULL) {
   invisible(TRUE)
 }
 
+#' Coerce a matrix to a data frame (keeping rownames); error on other types
+#' @keywords internal
+#' @noRd
+.as_df <- function(x) {
+  if (is.matrix(x)) x <- as.data.frame(x, stringsAsFactors = FALSE)
+  if (!is.data.frame(x)) stop("Input must be a data frame or matrix", call. = FALSE)
+  x
+}
+
 #' Validate a data frame or matrix with an optional gene column
 #'
 #' @param df A data frame or matrix.
@@ -110,14 +114,7 @@ validate_org <- function(org, genes = NULL) {
 #' @keywords internal
 #' @noRd
 validate_df <- function(df, gene_column = NULL) {
-  if (!(is.data.frame(df) || is.matrix(df))) {
-    stop("Input must be a data frame or matrix", call. = FALSE)
-  }
-  if (is.matrix(df)) {
-    genes <- rownames(df)
-    df <- as.data.frame(df, stringsAsFactors = FALSE)
-    rownames(df) <- genes
-  }
+  df <- .as_df(df)
   if (!is.null(gene_column)) {
     if (!gene_column %in% names(df)) {
       stop("Gene column '", gene_column, "' not found in data frame", call. = FALSE)
@@ -140,14 +137,7 @@ validate_df <- function(df, gene_column = NULL) {
 #' @keywords internal
 #' @noRd
 validate_exprs <- function(exprs) {
-  if (!(is.data.frame(exprs) || is.matrix(exprs))) {
-    stop("Input must be a data frame or matrix", call. = FALSE)
-  }
-  if (is.matrix(exprs)) {
-    genes <- rownames(exprs)
-    exprs <- as.data.frame(exprs, stringsAsFactors = FALSE)
-    rownames(exprs) <- genes
-  }
+  exprs <- .as_df(exprs)
   rn <- rownames(exprs)
   valid_idx <- !is.na(rn) &
     !grepl("^NA(\\.[0-9]+)?$", rn) &
@@ -158,3 +148,9 @@ validate_exprs <- function(exprs) {
   }
   exprs[valid_idx, , drop = FALSE]
 }
+
+#' Null-default operator (base R only provides this from 4.4)
+#'
+#' @keywords internal
+#' @noRd
+`%||%` <- function(x, y) if (is.null(x)) y else x

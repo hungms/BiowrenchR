@@ -31,6 +31,7 @@ Offline BioMart / cell-cycle helpers expect TSV files under `inst/extdata/`
 | Gene sets | `xy_genes`, `mt_genes`, `cell_cycle_genes`, `genes_by_pattern`, `*_pattern` | `R/genesets.R` |
 | Annotation | `annotate_genes` | `R/annotate.R` |
 | Summarize | `summarize_genes` | `R/summarize.R` |
+| Sex imputation | `impute_sex`, `sex_marker_genes` | `R/sex.R` |
 | Crick templates | `prepare_crick_rnaseq`, `prepare_crick_atacseq`, `prepare_crick_10x`, `prepare_crick_cellranger`, `extract_fastq`, `cat_content` | `R/crick.R` |
 | Palettes | `get_palette`, `palette_list`, `display_palettes` | `R/plot-palette.R` |
 | Plot export | `save_plot`, `save_jupyter_plot` | `R/plot-export.R` |
@@ -90,6 +91,13 @@ save_plot(p, "figures", file = "myplot.pdf")
 # prepare_crick_cellranger(lib)
 ```
 
+### Sex imputation
+
+```r
+impute_sex(log_expr_mat)            # human; genes as rownames
+impute_sex(log_expr_mat, org = "mouse")
+```
+
 ### Annotation and isoform summarization
 
 ```r
@@ -105,15 +113,16 @@ When `local = TRUE` (default), these files are expected in `inst/extdata/`:
 - `biodict_human_release-<release>.tsv` — human symbols + chromosomes
 - `biodict_mouse_release-<release>.tsv` — mouse symbols + chromosomes
 - `cellcycle_<org>_genes.tsv` — cell-cycle gene sets
+- `omnipathdb_<org>_release-<release>.tsv` — OmniPath annotations
 
 Default `release` is `"105"`. Set `local = FALSE` on BioMart loaders to query
 Ensembl instead (requires network and **biomaRt**).
 
 ## Dependencies
 
-**Imports:** dplyr, tidyr, tibble, stringr, magrittr, rlang, data.table, biomaRt, grDevices, utils
+**Imports:** biomaRt, data.table, dplyr, grDevices, rlang, stats, stringr, tibble, tidyr, utils
 
-**Suggests:** ggplot2, ggplotify, Cairo, viridis, RColorBrewer, STRINGdb
+**Suggests:** Cairo, ggplot2, ggplotify, RColorBrewer, viridis
 
 ## License
 
