@@ -30,18 +30,32 @@
 
 #' Read a TSV from package extdata
 #'
+#' Quote and comment characters are disabled so that `'`, `"` or `#` inside
+#' annotation text cannot silently truncate or merge rows.
+#'
 #' @param filename File name under `inst/extdata`
+#' @param cache If `TRUE`, keep the parsed table in `.biowrenchR_env` and
+#'   reuse it on later calls (keyed by `filename`).
 #' @return data.frame
 #' @keywords internal
 #' @noRd
-.read_extdata_tsv <- function(filename) {
-  utils::read.table(
+.read_extdata_tsv <- function(filename, cache = FALSE) {
+  key <- paste0("extdata:", filename)
+  if (cache && exists(key, envir = .biowrenchR_env, inherits = FALSE)) {
+    return(get(key, envir = .biowrenchR_env, inherits = FALSE))
+  }
+  df <- utils::read.table(
     .extdata_path(filename),
     header = TRUE,
     sep = "\t",
+    quote = "",
+    comment.char = "",
+    strip.white = TRUE,
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+  if (cache) assign(key, df, envir = .biowrenchR_env)
+  df
 }
 
 #' Column name helpers for organism dictionaries

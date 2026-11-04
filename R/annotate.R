@@ -31,7 +31,8 @@ annotate_genes <- function(df,
   validate_org(org.to)
 
   annot <- .read_extdata_tsv(
-    paste0("omnipathdb_", org.from, "_release-", release, ".tsv")
+    paste0("omnipathdb_", org.from, "_release-", release, ".tsv"),
+    cache = TRUE
   )
 
   source_sym <- .symbol_col(org.from)

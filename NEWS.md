@@ -12,17 +12,23 @@
 * Bundled Ensembl release-105 BioMart dictionaries
   (`biodict_release-105.tsv`, `biodict_{human,mouse}_release-105.tsv`) in
   `inst/extdata`.
+* Bundled cell-cycle gene tables (`cellcycle_{human,mouse}_genes.tsv`) and
+  OmniPath annotation tables (`omnipathdb_{human,mouse}_release-105.tsv`), so
+  `cell_cycle_genes()` and `annotate_genes()` work out of the box.
 
 ## Behaviour changes
 
 * `convert_genes()` now returns results in the order of the input `genes`
   (previously sorted alphabetically by source gene).
+* `df_to_list()` trims surrounding whitespace from each entry.
 
 ## Internal
 
 * Refactored BioMart loaders (`.load_org_biomart()`, `.lds_dict()`), validators
   and Crick template helpers to remove duplicated code.
 * `save_jupyter_plot()` now delegates to `save_plot()`.
+* Extdata tables are read with quoting and comments disabled, and the
+  cell-cycle and OmniPath tables are cached per session.
 * Dropped `magrittr` (native `|>` throughout) and unused `STRINGdb`; added
   `stats` to Imports; real `URL` / `BugReports`; removed `LazyData`.
 * Removed duplicate `icon.png` and the `color_palettes` doc stub.

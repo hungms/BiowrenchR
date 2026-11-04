@@ -28,7 +28,8 @@ list_to_df <- function(x) {
 
 #' Convert a data frame to a list of vectors
 #'
-#' Drops `NA`, empty strings, and the literal string `"NA"` from each column.
+#' Trims surrounding whitespace, then drops `NA`, empty strings, and the
+#' literal string `"NA"` from each column.
 #'
 #' @param df A data frame.
 #' @return A named list of character vectors (one per column).
@@ -43,7 +44,7 @@ df_to_list <- function(df) {
     stop("Input must be a data frame", call. = FALSE)
   }
   lapply(df, function(col) {
-    col <- as.character(col)
+    col <- trimws(as.character(col))
     col[!is.na(col) & nzchar(col) & col != "NA"]
   })
 }

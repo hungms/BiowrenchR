@@ -111,7 +111,7 @@ mt_genes <- function(org, ...) {
 #' @export
 cell_cycle_genes <- function(org) {
   validate_org(org)
-  cc_df <- .read_extdata_tsv(paste0("cellcycle_", org, "_genes.tsv"))
+  cc_df <- .read_extdata_tsv(paste0("cellcycle_", org, "_genes.tsv"), cache = TRUE)
   df_to_list(cc_df)
 }
 

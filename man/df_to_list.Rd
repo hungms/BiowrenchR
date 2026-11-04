@@ -13,7 +13,8 @@ df_to_list(df)
 A named list of character vectors (one per column).
 }
 \description{
-Drops \code{NA}, empty strings, and the literal string \code{"NA"} from each column.
+Trims surrounding whitespace, then drops \code{NA}, empty strings, and the
+literal string \code{"NA"} from each column.
 }
 \examples{
 my_df <- data.frame(a = c("A", "B", ""), b = c("D", "E", NA))

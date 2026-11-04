@@ -18,11 +18,21 @@ Project state, decisions and next steps. Newest log entries first.
 | `R/internal.R` | non-exported helpers (cache, extdata reader, validators, `%||%`) |
 
 - MIT licence, R >= 4.1, native pipe `|>` throughout (no magrittr).
-- Extdata: `biodict_release-105.tsv`, `biodict_{human,mouse}_release-105.tsv` present (added 2026-11-03);
-  `cellcycle_*` and `omnipathdb_*` still missing. See `inst/extdata/README.md`.
+- Extdata: all files present — `biodict_*` (added 2026-11-03), `cellcycle_{human,mouse}_genes.tsv`
+  and `omnipathdb_{human,mouse}_release-105.tsv` (added 2026-11-04). See `inst/extdata/README.md`.
+  Installed size ~15 MB (OmniPath human table is 8.8 MB), so `R CMD check` may NOTE package size.
 - Dev on CAMP: `module load R/4.5.1-gfbf-2025a`, then `roxygen2::roxygenise()`, `R CMD build` + `R CMD check`.
 
 ## Log
+
+### 2026-11-04 — cell-cycle + OmniPath extdata
+- Added `cellcycle_{human,mouse}_genes.tsv` (Seurat S/G2M + Macosko phase sets) and
+  `omnipathdb_{human,mouse}_release-105.tsv`; `cell_cycle_genes()` / `annotate_genes()` verified.
+- Trimmed a stray leading space (`" AGFG1"`, Macosko_M.G1) in the human cell-cycle table;
+  `df_to_list()` now `trimws()`s entries.
+- `.read_extdata_tsv()`: `quote = ""`, `comment.char = ""`, `strip.white = TRUE`; optional
+  `cache = TRUE` (used for cell-cycle and OmniPath tables). OmniPath tables have no duplicate
+  source symbols, so the left join cannot multiply rows.
 
 ### 2026-11-04 — v0.1.1
 - Bumped version 0.1.0 → 0.1.1; added `NEWS.md` summarising the changes below.
@@ -67,7 +77,7 @@ Project state, decisions and next steps. Newest log entries first.
 - [ ] API tidy-ups (breaking, not yet done): `extract_fastq(format=)` is unused;
       `cat_content(dir=)` takes a file path; `prepare_crick_10x(str=)` name is vague
 - [ ] `.get_org_biomart()` cache ignores `...` (e.g. a different `release` returns the cached one)
-- [ ] `git config core.fileMode false` to hide 644→755 mode noise
+- [x] `git config core.fileMode false` to hide 644→755 mode noise (done 2026-11-04)
 
 ## Notes
 <!-- Free-form context -->
